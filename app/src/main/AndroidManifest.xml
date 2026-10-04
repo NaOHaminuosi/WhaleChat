@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 语音输入：走系统识别 Activity 时不需要，走 SpeechRecognizer 直连时需要 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- API 30+ 包可见性：不加这一段，SpeechRecognizer.isRecognitionAvailable() 恒为 false -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".WhaleChatApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WhaleChat">
+
+        <uses-library
+            android:name="com.google.android.wearable"
+            android:required="false" />
+
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="true" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:taskAffinity=""
+            android:theme="@style/Theme.WhaleChat">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

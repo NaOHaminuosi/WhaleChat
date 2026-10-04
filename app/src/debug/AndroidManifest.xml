@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  debug 包专用清单。
+
+  只加一件事：允许明文 HTTP。本机联调（对着电脑上起的抓包代理、或自建的
+  http:// 服务）时，targetSdk ≥ 28 默认禁明文，会一直撞 UnknownServiceException。
+
+  release 包**不受影响**，安全策略一行没动：要放行也该用 networkSecurityConfig
+  白名单精确放行某个域名，而不是一把全放开。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>

@@ -1,0 +1,15 @@
+# 统一换行符：仓库内一律 LF，Windows 上的 .bat 用 CRLF。
+# 这条对 gradlew 尤其重要 —— 它被 checkout 成 CRLF 后在 Linux/macOS 上会直接跑不起来。
+* text=auto eol=lf
+*.bat text eol=crlf
+
+# Markdown 一律 CRLF 检出（仓库内仍存 LF）。
+# 原因：Windows 记事本对纯 LF 文件不认换行，会把整篇挤成一整行 —— 这是被实际踩到的坑。
+*.md text eol=crlf
+
+# 二进制文件别做文本转换
+*.jar binary
+*.png binary
+*.jpg binary
+*.jks binary
+*.keystore binary

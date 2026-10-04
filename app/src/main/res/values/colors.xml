@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <!-- 启动图标用的品牌蓝 -->
+    <color name="brand_blue">#FF4D6BFE</color>
+    <color name="brand_blue_deep">#FF3550E6</color>
+</resources>

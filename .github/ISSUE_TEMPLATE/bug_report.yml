@@ -1,0 +1,76 @@
+name: 问题反馈
+description: 什么地方不对劲
+labels: [bug]
+body:
+  - type: markdown
+    value: |
+      提交前请确认：**任何 Key、token、凭证都不要贴在 Issue 里。**
+      `sk-…`、讯飞三串、扫码页 URL（`?token=…`）出现在这里就等于泄露，请先打码。
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App 版本
+      description: 设置页最底部能看到
+      placeholder: 1.0
+    validations:
+      required: true
+
+  - type: input
+    id: watch
+    attributes:
+      label: 手表型号与系统
+      placeholder: 例如：TicWatch Pro 5 / Wear OS 4 / Android 13
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 出在哪个环节
+      options:
+        - 对话 / 发消息
+        - 回答档位（快答 / 深度思考）
+        - 语音识别
+        - 手机扫码改凭证
+        - 会话列表 / 删除 / 改最新一问
+        - 设置页
+        - 界面 / 动画
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 你以为会怎样
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际怎样
+      description: 有报错就把原话抄上来，有截图就贴（480×480 的最好）
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 设置 → …
+        2. 按了 …
+        3. 就 …
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 先确认过这些
+      options:
+        - label: 用的是 release 包（debug 包在手表上会明显卡，性能问题别拿 debug 下结论）
+        - label: Key 是有效的（用 curl 直连官方 API 试过）
+        - label: 贴出来的内容里没有任何明文凭证

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Wear 上的窗口主题：Compose 负责全部绘制，宿主主题只需要一个不闪白的深色底。
+      windowBackground 用黑色而不是白色，冷启动时才不会在圆屏上闪一下白。
+    -->
+    <style name="Theme.WhaleChat" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

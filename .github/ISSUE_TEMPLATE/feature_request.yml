@@ -1,0 +1,42 @@
+name: 想要个功能
+description: 提想法 / 提改进
+labels: [enhancement]
+body:
+  - type: markdown
+    value: |
+      先说清楚两类不会被接受的，省得白写：
+
+      - 接入 DeepSeek 之外的第三方兼容端点（保持单一后端）
+      - 统计 / 遥测 / 崩溃上报 / 账号体系（这个项目的立场就是数据不出手表）
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 现在卡在哪
+      description: 描述你在手表上真实遇到的那个动作，别只写「希望支持 XX」
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你想让它变成什么样
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 试过的别的办法
+      description: 有没有绕过去的办法？绕不过去才说明真需要做
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响面
+      options:
+        - 只影响我（个人偏好）
+        - 多数人都会遇到
+        - 不确定
+    validations:
+      required: true

@@ -1,0 +1,28 @@
+# 本地路径
+local.properties
+
+# 签名口令 +（可选的）预置 API Key，绝对不进版本库
+keystore.properties
+keystore/
+*.jks
+*.keystore
+
+# 构建产物与缓存
+build/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+*.iml
+.idea/
+
+# 本地调试产物：uiautomator dump、截图、打包脚本
+_probe/
+_shots/
+captures/
+dist/
+
+# 编辑器 / Office 临时文件（Word 打开 .md 会生成 ~$ 锁文件）
+~$*
+*.tmp
+*.swp
