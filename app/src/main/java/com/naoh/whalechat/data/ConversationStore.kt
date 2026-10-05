@@ -49,6 +49,15 @@ class ConversationStore(private val file: File) {
         .put("createdAt", c.createdAt)
         .put("updatedAt", c.updatedAt)
         .put("titleGenerated", c.titleGenerated)
+        // 普通对话写空串，不写 JSON null：读回来的判据统一是「空串 = 不是角色会话」，
+        // 少一个 null 分支就少一处漏判。
+        .put("personaId", c.personaId.orEmpty())
+        .put("promptTokens", c.promptTokens)
+        .put("completionTokens", c.completionTokens)
+        // 顺序无所谓，但**必须跟下面 readonly 那边成对**：
+        // 只写不读 = 界面永远拿不到数据（「解析对了、发射漏了」同一类）。
+        .put("cacheHitTokens", c.cacheHitTokens)
+        .put("cacheMissTokens", c.cacheMissTokens)
         .put(
             "messages",
             JSONArray().apply {
@@ -73,6 +82,17 @@ class ConversationStore(private val file: File) {
             createdAt = o.optLong("createdAt", System.currentTimeMillis()),
             updatedAt = o.optLong("updatedAt", System.currentTimeMillis()),
             titleGenerated = o.optBoolean("titleGenerated", false),
+            // 向后兼容：老文件里根本没有这个键，optString 会给出空串 → null。
+            // 反过来说，**绝不能**拿 `has("personaId")` 当判据，那对老文件恒为 false。
+            personaId = o.optString("personaId").takeIf { it.isNotBlank() },
+            promptTokens = o.optLong("promptTokens", 0L),
+            completionTokens = o.optLong("completionTokens", 0L),
+            // ⚠️ 默认 **0L，不是 -1**：判据统一是「hit + miss == 0 ⇒ 没数据」，
+            // 引入 -1 会多出一个要到处单独处理的哨兵值。老文件里没有这两个键
+            // → 都读成 0 → [Conversation.cacheHitRate] 给 null → 命中率不显示。
+            // **这正是要的行为，不要为此写迁移**。
+            cacheHitTokens = o.optLong("cacheHitTokens", 0L),
+            cacheMissTokens = o.optLong("cacheMissTokens", 0L),
             messages = (0 until messages.length()).mapNotNull { i ->
                 val m = messages.optJSONObject(i) ?: return@mapNotNull null
                 ChatMessage(

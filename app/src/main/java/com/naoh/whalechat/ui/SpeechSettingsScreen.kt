@@ -97,7 +97,7 @@ fun SpeechSettingsScreen(
                 // 手机扫码导入那张表里也有这三格，而且是从控制台复制过来的同一份东西，
                 // 顺手提示一句，省得用户在手表上跟自己较劲。
                 item(key = "xfy_import_hint") {
-                    HintText("这三串在手表上敲很费劲。回设置页用「手机扫码改凭证」，在手机上填一次更快。")
+                    HintText("这三串在手表上敲很费劲。回设置页用「手机扫码改凭证」，手机上填一次更快。")
                 }
 
                 item(key = "xfy_appid") {
@@ -137,7 +137,7 @@ fun SpeechSettingsScreen(
 
                 item(key = "xfy_note") {
                     HintText(
-                        "三串都在讯飞控制台「我的应用」里，缺一样都调不通。说完立刻有结果，短句效果最好。",
+                        "三串都在讯飞控制台「我的应用」里，缺一样都调不通。",
                     )
                 }
             }

@@ -64,8 +64,31 @@ import kotlinx.coroutines.flow.first
  */
 private val ACTION_ROW_WIDTH = 168.dp
 
-/** 底部留白。它是列表的最后一个 item，滚到底时屏幕最下面那块空白。 */
+/**
+ * 底部留白。
+ *
+ * 它是列表的**最后一个 item**，也就是滚到底时屏幕最下面那块空白，
+ * 排在 `usage`（用量文字）**下面**。
+ *
+ * ⚠️ **它不决定「用量文字离输入胶囊多远」。** 实测（模拟器 480×480）：
+ * 48dp 与 44dp 两种取值下，「胶囊底 → 文字顶」的间隙**都是 16px**，
+ * 文字与胶囊之间的相对距离完全没变 —— 变的只是整块内容在屏上的绝对位置
+ * （44dp 时整块往下沉 8px，离圆屏下沿更近）。
+ *
+ * 所以它**不是**「下边界」那件事的杠杆。用户说的「下边界有点点过了」
+ * 靠 [UsageFooter] 上面的间隔来解（见那边的注释）。这里保持 48dp 不动。
+ */
 private val BOTTOM_GAP = 48.dp
+
+/**
+ * 用量文字与它上面那颗「输入胶囊」之间的额外空隙。
+ *
+ * 这是「下边界有点点过了」那件事的**唯一有效杠杆**（见 `usage_gap` 那边的长注释）：
+ * 两者本来就只隔一个列表行距，实测 16px（8dp），在 240dp 屏上像贴着。
+ * 补 10dp → 实测间隙约 36px（18dp），文字从胶囊底下「浮」出来，
+ * 又不会把文字推出圆屏安全区。
+ */
+private val USAGE_TOP_GAP = 10.dp
 
 /**
  * 底部两颗按钮之间的间隙。
@@ -99,6 +122,22 @@ fun ChatScreen(
     val messages = conversation?.messages.orEmpty()
 
     /**
+     * 助手气泡那一行身份标签写什么。
+     *
+     * 角色会话里写**角色名**（「周野」），普通会话里照旧写「DeepSeek」。
+     *
+     * 这正是「每条气泡各自带身份」的落点 —— 所以**聊天页顶部不需要常驻角色名**：
+     * 屏幕上每一句 TA 说的话上面都已经写着是谁说的了。
+     *
+     * 角色被删掉之后这里会退回「DeepSeek」，看着像串了。但那种情况本来就会把
+     * 这一页送走（见下面的 `gone`），用户看不到那一帧。
+     */
+    val assistantLabel = conversation?.personaId
+        ?.let { ChatEngine.findPersona(it)?.name }
+        ?.takeIf { it.isNotBlank() }
+        ?: "DeepSeek"
+
+    /**
      * 会话真的被删掉时，**自己退回上一页**，不停在这块空屏上。
      *
      * 以前这里显示「这条对话已经不在了」然后就没了下文 —— 那是个死页面：
@@ -111,7 +150,7 @@ fun ChatScreen(
      *  2. 刚点「＋」进来的空壳（DS 还没回过话）→ 用户进打字页一个字没打就退出，
      *     或从这儿绕去设置里清了个空，回到这条空白会话时它当然不在列表里 ——
      *     这时候弹一句「这个对话已经不在了」纯属胡说，因为**这个对话根本还没建立**。
-     *     **有 DS 回复才算一条新对话**；
+     *     规矩就是这个：**有 DS 回复才算一条新对话**；
      *  3. **重建空窗期** —— 最阴的一条：Wear 的边缘滑动返回（SwipeDismissableNavHost）
      *     会让这一页短暂重建，重建那一瞬间 `conversations` 还没读回来、列表是空的，
      *     于是「找不到」成立，红卡片就从首页中间劈下来。用户只是正常返回了一次
@@ -198,9 +237,9 @@ fun ChatScreen(
 
     // 提示出现时，把它滚进视野。**提示在列表末尾**，所以要滚到底。
     //
-    // 提示项早先插在**列表最前面**（消息循环之前），于是每次语音识别失败
+    // 提示项以前插在**列表最前面**（消息循环之前，索引 1），于是每次语音识别失败
     // 都要把用户从底部**闪到顶端**去看那条红卡 —— 报错之后还得自己再滑回底部。
-    // 现在提示项在消息循环**之后**，紧贴底部，报错不需要移动视线。
+    // 现在提示项搬到了消息循环**之后**，紧贴底部，报错不需要移动视线。
     //
     // 搬位置的同时，这里也必须跟着改：原来滚到索引 1，现在要滚到**最后一项**
     // （末尾是底部留白，见 `bottom_gap` —— 滚到留白处正好把提示那一项完整带进视野）。
@@ -214,7 +253,7 @@ fun ChatScreen(
     // ## 代价（说清楚，别当成 bug）
     //
     // 这次程序化滚动会让上面那段 snapshotFlow 认为「用户滚了」，于是 follow 变成 false。
-    // 现在滚的是**底部**（早先是顶部），所以 follow 很快会在下一次
+    // 之后滚的是**底部**（以前是顶部），所以 follow 很快会在下一次
     // 「用户滑回底部」时自己恢复；而且滚到底本来就更接近流式输出的落点。
     // 这是可接受的 —— 有提示的时候本来就更该先看提示。
     val noticeText = hint ?: engineNotice
@@ -270,7 +309,7 @@ fun ChatScreen(
                 return@ScalingLazyColumn
             }
 
-            // ⚠️ 提示项（`NoticeCard`）在**消息循环之后**，见下面
+            // ⚠️ 提示项（`NoticeCard`）**搬到消息循环之后**了，见下面
             // 「item(key = "notice")」那一处。别搬回这里 ——
             // 放在消息前会让每次语音识别失败都「闪到顶端」，用户还得滑回底部。
 
@@ -294,7 +333,7 @@ fun ChatScreen(
             //
             // 为什么不给更早的那些：改中间那句的后果是把它**后面已经发生的整段对话**
             // 一起作废。会话滚长之后回头改前面某句，代价是后面几轮问答全部消失 ——
-            // 「不允许在已有多条对话时，去编辑以前的消息……
+            // 规则是「不允许在已有多条对话时，去编辑以前的消息……
             // 不能出现为了编辑之前的消息然后舍弃下面更新的对话」。
             //
             // 两处仍然不给长按：
@@ -305,6 +344,12 @@ fun ChatScreen(
                 item(key = "m$index-${message.timestamp}") {
                     MessageCard(
                         message = message,
+                        assistantLabel = assistantLabel,
+                        // 气泡右上角那个时间显不显示，由设置里那个开关决定。
+                        // **由调用方传进来**（这一层已经订阅过 settings 了），
+                        // 不在 MessageCard 内部再订阅一次 —— 每条消息各订阅一次状态，
+                        // 长对话滚动时会掉帧。
+                        showBubbleTime = settings.showBubbleTime,
                         onRetry = if (message.error) {
                             { ChatEngine.retry(conversationId) }
                         } else {
@@ -323,7 +368,8 @@ fun ChatScreen(
             //
             // ⚠️ **位置在消息循环之后**。原来是列表第 1 项，后果是
             // 每次提示出现都要把用户从底部闪到顶端，然后他自己再滑回底部。
-            // 搬到末尾 + 那个 `LaunchedEffect` 滚到底，提示出现在视线落点附近，不打断阅读。
+            // 搬到末尾 + 那个 `LaunchedEffect` 滚到底，
+            // 提示出现在视线落点附近，不打断阅读。
             //
             // `hint`（语音/本地）和 `engineNotice`（缺 Key 等）**共用这一个 item**，
             // 必须一起搬 —— 只搬一半会让两处提示出现在不同位置。
@@ -484,6 +530,39 @@ fun ChatScreen(
                 }
             }
 
+            // 划到最底下才出现的那行用量小字。两种模式（ask / chat）都显示：
+            // 数据已经记了（两种模式的会话都记），显示成本为零，
+            // ask 用户同样关心这个对话烧了多少。
+            //
+            // 「显示设置」里的**「对话中的用量」**只管这一处。
+            // 关掉时是**整行不存在** —— 不是变灰、也不是显示 0：变灰等于
+            // 「有数据但我藏起来」，那是在替用户决定什么该看；用户关它就是因为不想看。
+            val totalTokens = conversation.totalTokens
+            if (settings.showUsageInChat && totalTokens > 0L) {
+                // ★ 这一条空隙就是「下边界」那件事的真正杠杆。
+                //
+                // 用量文字是列表里的一个 item，紧跟在 `actions`（输入胶囊那颗 item）后面，
+                // 两者之间只有列表默认的行距 —— 实测：胶囊底 → 文字顶 **16px（8dp）**，
+                // 在 240dp 的屏上看着像被胶囊压着。
+                //
+                // 为什么不去调 `BOTTOM_GAP`：它排在 `usage` **下面**，跟胶囊之间的
+                // 距离一点关系都没有。实测 48dp 与 44dp 两种取值下间隙**都是 16px**，
+                // 只是整块内容在屏上的绝对位置变了 —— 改它等于白改（还会把文字往圆屏下沿推）。
+                //
+                // 加这一条 10dp 空隙，把文字从胶囊底下「拉出来」：
+                // 间隙 16px → 约 36px。同时下面的 `BOTTOM_GAP` 兜住尾部留白，
+                // 保证文字不会被圆边切到（用户硬约束：「更不要收缩到显示不全 token 消耗量」）。
+                item(key = "usage_gap") { GapItem(USAGE_TOP_GAP) }
+                item(key = "usage") {
+                    UsageFooter(
+                        visible = !listState.canScrollForward,
+                        tokens = totalTokens,
+                        // null（老对话 / 服务端没给 cache）= 命中率整段不出现。
+                        hitRate = conversation.cacheHitRate,
+                    )
+                }
+            }
+
             item(key = "bottom_gap") { GapItem(BOTTOM_GAP) }
         }
     }
@@ -518,11 +597,35 @@ fun ChatScreen(
 /**
  * 一条消息。
  *
- * 第一行是名字：用户消息写「你」，助手消息写「DeepSeek」。
+ * ## 第一行：名字（左）+ 时间（右）
+ *
+ * 原来是名字独占一行。现在名字和时间并排、**同一水平线**：
+ * ```
+ * 你                   14:32
+ * 问的内容……
+ * ```
+ *
+ * ⚠️ 这一行必须是 `Row`，不能把两者拼成一个字符串：名字要 `weight(1f) + Ellipsis`
+ * （长名字先截断、时间永远在），而拼串做不到这一点 —— 名字长了时间会被挤出去或换行。
+ *
+ * 时间用和名字**同一套 `when` 配色**（user / error / 普通三种容器色各配一个前景色），
+ * 否则在 `primaryContainer`（用户气泡）上会是一块读不清的灰。
+ *
+ * ⚠️ **只有用户自己的气泡出时间**：判据是
+ * `isUser && showBubbleTime`。助手回答不挂时间 —— 响应很快，那是噪音；
+ * 用户要回顾的是「我什么时候问的」。
+ *
+ * [showBubbleTime] 由调用方传入（那里已订阅 settings），**不在这里内部订阅**。
+ * 关掉时**整块时间不渲染** —— 名字那行 `weight(1f)` 会自然占满右边，
+ * 看上去像「本来就没有时间」，而不是留一个空位。
  */
 @Composable
 private fun MessageCard(
     message: ChatMessage,
+    /** 助手气泡顶上那一行写谁说的：角色会话是角色名，普通会话是「DeepSeek」。 */
+    assistantLabel: String,
+    /** 气泡右上角那个时间显不显示（`Settings.showBubbleTime`）。 */
+    showBubbleTime: Boolean,
     onRetry: (() -> Unit)?,
     onLongClick: (() -> Unit)?,
 ) {
@@ -540,7 +643,7 @@ private fun MessageCard(
         else -> scheme.onSurface
     }
 
-    /** 名字的前景色。 */
+    /** 名字和时间共用这一个前景色 —— 两者在同一条线上，颜色不一样会很跳。 */
     val labelColor = when {
         message.error -> scheme.onErrorContainer
         isUser -> scheme.onPrimaryContainer
@@ -561,13 +664,44 @@ private fun MessageCard(
         colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = if (isUser) "你" else "DeepSeek",
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = labelColor,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                // ⭐ 库里的 `Row` 默认 verticalAlignment 是 Top；这一行是一个 16sp 的名字
+                // 配一个 13sp 的时间，贴顶对齐会在基线附近差一截，居中才对得上。
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    // 角色会话里这一行是角色名 —— 用户得看得见「刚才是谁在说话」。
+                    // 长名字已经在 PersonaStore 里削到 6 字，这里不再二次截断，
+                    // 免得出现两个地方各削一刀、结果都不一样的怪事。
+                    text = if (isUser) "你" else assistantLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = labelColor,
+                    // ⭐ weight 必须给名字、**不能给时间**。Row 先量非 weight 的子项，
+                    // 名字会把想要的宽度全拿走、把时间挤成 0 宽（表现为「时间不见了」，
+                    // 而短名字时看起来完全正常）。weight 给名字 + Ellipsis 之后，
+                    // 长名字自己截断，时间永远稳稳待在右边。
+                    modifier = Modifier.weight(1f),
+                )
+
+                // ⭐ **只给用户自己的气泡显示时间**。
+                // 理由：接收方的响应很快，给回答气泡也挂时间只是噪音；用户真正想回顾的是
+                // 「我什么时候问的」。所以这里判 `isUser && showBubbleTime`，
+                // 助手气泡（含 ask 页的 DeepSeek 气泡）一律不出时间。
+                //
+                // 关掉时整块不渲染（`if` 在 Row 里，不是 `Text("")`）——
+                // 空 Text 仍会占宽度、也会多一个可测量的子项，等于留了个空位。
+                if (isUser && showBubbleTime) {
+                    Text(
+                        text = bubbleTime(message.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        color = labelColor,
+                    )
+                }
+            }
 
             if (hasReasoning) {
                 Text(
@@ -592,6 +726,87 @@ private fun MessageCard(
             }
         }
     }
+}
+
+/**
+ * 对话页底部那行「本对话已用 xx tokens」。
+ *
+ * 只在**划到最底下**时出现（`visible = !canScrollForward`），往上滑一点就淡出。
+ * 只显示最终总量，**不显示「上轮 xx」** —— 那会把一行小字塞进两个数字，反而更费读。
+ *
+ * **这一行末尾还会挂一个缓存命中率**（`· 命中 87%`，[usageText] 拼的）。
+ * 它是「输入里有多少是命中缓存的」—— 命中那一档比未命中便宜一个数量级，
+ * 所以长对话省钱的大头就在这个比例上。数据来自 usage 里本来就返回的
+ * `prompt_cache_hit_tokens` / `prompt_cache_miss_tokens`。
+ *
+ * ⚠️ **[hitRate] 为 null 时命中率整段不出现**（老对话 / 服务端没给 cache 字段），
+ * 那一行就跟总量文案一样。不要把它显示成「命中 0%」——
+ * 「没统计过」和「真的一字未命中」是两件事，混起来看着就是个 bug。
+ * **也不给它单加开关**：它跟着「对话中的用量」走，那个关掉这整行就没了。
+ *
+ * **显不显示由「对话中的用量」控制**（`Settings.showUsageInChat`）。
+ * 那个开关关掉时**整行不存在**（调用点直接不渲染这个 item），不是变灰、也不是显示 0。
+ * 注意：原来那个管两处的 `showTokenUsage` 已拆成两个开关，
+ * 这一处归「对话中的用量」，角色列表那一处归「角色列表的用量」。
+ *
+ * ⚠️ **这个开关默认关**，而它的入口（「显示设置」二级页）也一并隐藏了
+ * ⇒ **默认状态下这行看不到，这是预期**。
+ * 改默认值看 `SettingsStore.applyDisplayDefaults`，恢复入口看
+ * `SettingsScreen.SHOW_DISPLAY_SETTINGS_ENTRY`。
+ *
+ * 淡入淡出用 Wear M3 的动效规范 `defaultEffectsSpec`（专管透明度/颜色这类「效果」），
+ * 不手写 `tween`。理由和首页那行模式提示一样：把 M3 在低功耗设备上对时长与缓动的
+ * 取舍丢掉、也失去跟主题一起变的能力，不划算。
+ *
+ * ⚠️ 这个 `Text` **故意不加 `maxLines` / `overflow` / 固定 `width`**：
+ * 它是 `fillMaxWidth()` + 居中，放不下时只会**换行**（信息不丢），而不是被裁掉。
+ * 之前字被裁成 `06:`，是因为那里硬写了 `Modifier.width(22dp)` 把盒子压窄了 ——
+ * 这里没有那个东西，**也不要为了「防换行」把它加上去**（那才会真的裁字）。
+ * （实测「本对话已用 … · 命中 87%」确实会换行，处理方式是**缩文案**，
+ * 见 [usageText] 的注释 —— 不是加这两样。）
+ */
+@Composable
+private fun UsageFooter(visible: Boolean, tokens: Long, hitRate: Float?) {
+    val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = spec),
+        exit = fadeOut(animationSpec = spec),
+    ) {
+        Text(
+            text = usageText(tokens, hitRate),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/**
+ * 底部那行用量文字的拼法。
+ *
+ * [hitRate] 为 null ⇒ 只有总量。见 [UsageFooter] 的注释：
+ * null 是「没统计过」，**不是**「命中率为 0」。
+ *
+ * ⚠️ **前缀是「已用」不是「本对话已用」**（实测后定的，见下）。
+ *
+ * 240dp 圆屏里这一行的**实测可用宽只有 189dp**（`fillMaxWidth` 拿到的
+ * bounds 是 378px ÷ density 2.0 —— 两侧 contentPadding 比提示词估的还多）。
+ * 而 ` · 命中 87%` 本身就占 ~50dp，于是「本对话已用 20.4k tokens
+ * · 命中 87%」实测**换行成两行**（`命` / `中 87%` 被拆开，截图可见）。
+ *
+ * 所以按降级顺序**走了第一步：去掉「本对话」**
+ * （`已用 20.4k tokens · 命中 87%`，~91dp）。
+ * 这里**没有缩字号、没有加 `maxLines`、没有加固定宽度** ——
+ * 那三样都会把「换行」变成「裁字」，是这个项目栽过的坑。
+ */
+private fun usageText(tokens: Long, hitRate: Float?): String {
+    val base = "已用 ${formatTokens(tokens)} tokens"
+    val rate = hitRate ?: return base
+    // `100%` 与 `0%` 都是合法结果（全命中 / 一个都没命中），都不许特判。
+    val pct = (rate * 100f).roundToInt().coerceIn(0, 100)
+    return "$base · 命中 $pct%"
 }
 
 @Composable

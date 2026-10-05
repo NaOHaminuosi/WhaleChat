@@ -6,3 +6,6 @@ contact_links:
   - name: 安全问题（别开公开 Issue）
     url: https://github.com/NaOHaminuosi/WhaleChat/security/advisories
     about: 涉及凭证、token 或请求构造的问题走这里私密报告，公开 Issue 会泄露你的 Key。
+  - name: 酷安 / 发布的文案
+    url: https://github.com/NaOHaminuosi/WhaleChat/blob/main/docs/COOLAPK.md
+    about: 应用市场简介、正文、更新日志都在这。

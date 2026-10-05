@@ -4,7 +4,7 @@ package com.naoh.whalechat
  * 编译期注入的预置凭证。
  *
  * 手表屏幕太小，35 位 `sk-…` 在圆屏输入法上敲一遍基本是自虐；讯飞那边更狠，
- * 要给 AppID（8 位十六进制）+ APIKey + APISecret（各 32 位十六进制）。所以留一个
+ * 要给 AppID + APIKey + APISecret（两个 32 位字符串）。所以留一个
  * 「出包时把凭证烤进去」的口子：值来自工程根的 `keystore.properties`
  * （和签名口令放一起的那个文件，本来就不进版本库）。
  *
@@ -24,7 +24,7 @@ object BuildSecrets {
     const val PRESET_XFY_APISECRET: String = BuildConfig.PRESET_XFY_APISECRET
 
     /**
-     * 预置时顺带把识别引擎切过去，`system` / `xfyun`。
+     * 预置时顺带把识别引擎切过去，`system` / `generic` / `xfyun`。
      *
      * 留空时：[hasPresetXfyun] 为真就切 `xfyun`，否则保持 App 自己的默认值。
      */

@@ -25,6 +25,9 @@ object AppIcons {
     val Back: ImageVector by lazy { vector("Back", BACK) }
     val Sparkle: ImageVector by lazy { vector("Sparkle", SPARKLE) }
     val Phone: ImageVector by lazy { vector("Phone", PHONE) }
+    val Person: ImageVector by lazy { vector("Person", PERSON) }
+    val Bubble: ImageVector by lazy { vector("Bubble", BUBBLE) }
+    val Eye: ImageVector by lazy { vector("Eye", EYE) }
 
     private const val MIC =
         "M12,14c1.66,0 2.99,-1.34 2.99,-3L15,5c0,-1.66 -1.34,-3 -3,-3S9,3.34 9,5v6c0,1.66 " +
@@ -66,6 +69,42 @@ object AppIcons {
     /** Material Symbols「smartphone」：手机轮廓，用于「手机扫码导入」 */
     private const val PHONE =
         "M17,1.01L7,1c-1.1,0 -2,0.9 -2,2v18c0,1.1 0.9,2 2,2h10c1.1,0 2,-0.9 2,-2V3c0,-1.1 -0.9,-1.99 -2,-1.99zM17,19H7V5h10v14z"
+
+    /**
+     * Material Symbols「person」：一个人形，用于「手机管理人设」。
+     *
+     * 和 [PHONE] 分开是必须的：设置页里两张「扫码」卡片上下紧挨着，
+     * 只靠标题区分的话，扫一眼根本分不清哪张管凭证、哪张管人设。
+     */
+    private const val PERSON =
+        "M12,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4z" +
+            "M12,14c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"
+
+    /**
+     * Material Symbols「chat_bubble」：一个带小尾巴的对话气泡，用于「显示设置」。
+     *
+     * 这个入口管的三件事里，两件是「用量文字显不显示」、一件是「气泡上要不要写时间」,
+     * 而**气泡是这里唯一有形状的东西** —— 用量是纯文字。选它当图标，
+     * 是因为圆屏上图标本来就认不太出细节，用「看得见的东西」比用抽象符号好认。
+     *
+     * 原来那格是账户余额在用（余额卡现改用 [SPARKLE]，和 Key 卡同一族）。
+     * 这里必须和 Key 卡的 [SPARKLE] 分开：两张卡隔着一段距离，形状一样但意思不同，
+     * 扫一眼会分不清哪个管钱、哪个管观感。
+     */
+    private const val BUBBLE =
+        "M20,2L4,2c-1.1,0 -2,0.9 -2,2v18l4,-4h14c1.1,0 2,-0.9 2,-2L22,4c0,-1.1 -0.9,-2 -2,-2z"
+
+    /**
+     * Material Symbols「visibility」：一只眼睛，用于「显示设置」二级页头。
+     *
+     * 二级页的表头图标只在页内出现一次，跟外面那格 [BUBBLE] 不冲突；
+     * 选它是因为这一页的三个开关都是「显示 / 不显示」，
+     * 一只眼睛比一个气泡更能概括整页（气泡只代表了三个开关里的第一个）。
+     */
+    private const val EYE =
+        "M12,4.5C7,4.5 2.73,7.61 1,12c1.73,4.39 6,7.5 11,7.5s9.27,-3.11 11,-7.5c-1.73,-4.39 " +
+            "-6,-7.5 -11,-7.5zM12,17c-2.76,0 -5,-2.24 -5,-5s2.24,-5 5,-5 5,2.24 5,5 -2.24,5 -5,5z" +
+            "M12,9c-1.66,0 -3,1.34 -3,3s1.34,3 3,3 3,-1.34 3,-3 -1.34,-3 -3,-3z"
 
     private fun vector(name: String, pathData: String): ImageVector = ImageVector.Builder(
         name = name,

@@ -56,24 +56,25 @@ fun String.asLiteral(): String =
 /**
  * 版本号。
  *
- * **`versionName` 每次改动 +0.001**：`1.0` → `1.001` → `1.002` …
- * 这样迭代版本号永远**够不着 2.0**，不会跟下一个大版本撞在一起。
+ * **`versionName` 每次改动 +0.001**：`1.976` → `1.977` → … → `2.0`。
+ * 大版本（动第一位，例如 `2.0`）留给人看得出来是阶段变化的时刻。
+ *
+ * ⚠️ **次版本最多 3 位。** versionCode 是 `主×1000 + 次` 算出来的，
+ *    写成 4 位（`1.9178`）会算出 10178，反而大过 `2.0` 的 2000 ——
+ *    于是正式版装不上（`INSTALL_FAILED_VERSION_DOWNGRADE`）。
  *
  * **`versionCode` 不手写，由 `versionName × 1000` 算出来。** 两个数分开手写迟早会
  * 忘掉其中一个，而 `versionCode` 忘了递增的后果是实打实的：装覆盖包会失败
  * （`INSTALL_FAILED_VERSION_DOWNGRADE`），而且是那种「明明改了代码，装机后画面还是旧的」
  * 的隐蔽症状。算出来的就永远是单调递增的。
  *
- * ⚠️ 这个映射在 `1.999` 上有一次断崖：下一位应该是 `2.000`，算出来 2000 ——
- * 也就是**真的进 2.0 了**。真到那一步说明该确认一次大版本号了，不是 bug。
- *
  * （别用 `java.math.BigDecimal`：Kotlin DSL 里 `java` 这个名字被 JavaPluginExtension
  * 占了，`java.math` 会报 `Unresolved reference: math`。）
  */
-val appVersionName = "1.0"
+val appVersionName = "1.976"
 val appVersionCode = appVersionName.split(".").let { parts ->
     require(parts.size == 2 && parts[0].toIntOrNull() != null) {
-        "versionName「$appVersionName」不是「主.次」的写法（约定是 1.0 / 1.001 / 1.002 …）"
+        "versionName「$appVersionName」不是「主.次」的写法（约定是 1.976 / 1.977 / 2.0 …）"
     }
     parts[0].toInt() * 1000 + parts[1].padEnd(3, '0').toInt()
 }

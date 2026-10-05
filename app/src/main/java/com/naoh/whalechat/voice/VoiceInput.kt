@@ -300,7 +300,7 @@ fun rememberVoiceInput(
     fun start() {
         if (phase != VoicePhase.IDLE) return
         when {
-            // 讯飞识别排在第一位，这就是这套改造的全部意义
+            // 自建识别排在第一位，这就是这套改造的全部意义
             ChatEngine.settings.value.speechReady ->
                 if (hasRecordPermission(context)) beginRecording()
                 else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -460,11 +460,11 @@ private class DirectSpeechRecognizer(
         SpeechRecognizer.ERROR_CLIENT -> "识别客户端出错"
         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "缺少麦克风权限"
         // 国内网络下这两个是最高频的：识别服务在 Google 那边，连不上
-        SpeechRecognizer.ERROR_NETWORK -> "识别服务连不上（可在设置里换成讯飞听写）"
-        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "识别服务超时（可在设置里换成讯飞听写）"
+        SpeechRecognizer.ERROR_NETWORK -> "识别服务连不上（可在设置里换成自建识别）"
+        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "识别服务超时（可在设置里换成自建识别）"
         SpeechRecognizer.ERROR_NO_MATCH -> "没听清，再说一次"
         SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "识别服务正忙，稍后再试"
-        SpeechRecognizer.ERROR_SERVER -> "识别服务出错（可在设置里换成讯飞听写）"
+        SpeechRecognizer.ERROR_SERVER -> "识别服务出错（可在设置里换成自建识别）"
         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "没有听到声音"
         else -> "识别失败"
     }

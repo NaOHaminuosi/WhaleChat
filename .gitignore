@@ -22,6 +22,12 @@ _shots/
 captures/
 dist/
 
+# 改动前的源码备份（后悔药用，里面是清理前的旧版本号/旧名，绝不能进库）
+app_src_backup_*.zip
+
+# 内部交接文档（版本史 / 内部规划），绝不能公开
+docs/handover/
+
 # 编辑器 / Office 临时文件（Word 打开 .md 会生成 ~$ 锁文件）
 ~$*
 *.tmp

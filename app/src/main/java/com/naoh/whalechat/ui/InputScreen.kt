@@ -42,6 +42,9 @@ import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import com.naoh.whalechat.data.ChatEngine
+import com.naoh.whalechat.data.PersonaField
+import com.naoh.whalechat.data.PresetField
+import com.naoh.whalechat.data.personaPresets
 import com.naoh.whalechat.voice.VoicePhase
 import com.naoh.whalechat.voice.rememberVoiceInput
 
@@ -79,6 +82,30 @@ sealed interface InputTarget {
         val draft: String = "",
         val rewriteIndex: Int? = null,
     ) : InputTarget
+
+    /**
+     * 「自己说一句」：把想要的角色描述出来。
+     *
+     * 提交之后**不在这里导航**，只把文字交给 `ChatEngine.personaDraft` ——
+     * 这一页离开时那个 `onDispose` 兜底只能写数据、不能导航（那里 navigate 是未定义行为）。
+     * 往前去等待页的那一步由新建页观察到草稿之后发起，见 [ChatEngine.personaDraft]。
+     */
+    data object PersonaDescription : InputTarget
+
+    /** 预设详情页里改某一格。[fieldKey] 对应 `PresetField.key`。 */
+    data class PresetFieldEdit(val presetIndex: Int, val fieldKey: String) : InputTarget
+
+    /**
+     * 改已有角色的一个**短字段**（名字 / 简介 / 开场白）。
+     *
+     * 只有这三格走这里：六块里的其余五块是大段文字，在这块表上敲不现实，
+     * 它们只在手机那一页改（见 `PersonaDetailScreen`）。
+     *
+     * 名字叫 `PersonaFieldEdit` 而不是 `PersonaField`，是为了不和
+     * `data.PersonaField` 那个枚举撞名 —— 它就在上面几行，撞了以后
+     * 这里每一处都得写全限定名。
+     */
+    data class PersonaFieldEdit(val personaId: String, val field: PersonaField) : InputTarget
 }
 
 /**
@@ -111,6 +138,15 @@ fun InputScreen(target: InputTarget, onDone: () -> Unit) {
         // 「问点什么」是主动进来的（对话页那个键盘按钮），「改这句」是长按某条提问来的。
         // 两件事的动作不同，标题也该不同 —— 否则用户看不出这次点「发送」会不会覆盖旧内容。
         is InputTarget.Chat -> if (target.rewriteIndex != null) "改这句重发" else "问点什么"
+        InputTarget.PersonaDescription -> "想要什么样的人"
+        // 标题直接用这一行的字段名（「称呼」「背景」…），用户改的时候一眼知道在改哪一项
+        is InputTarget.PresetFieldEdit -> target.field()?.label ?: "改一改"
+        // 同样用字段名当标题：从详情页点进来时，用户刚看到的就是这几个字
+        is InputTarget.PersonaFieldEdit -> when (target.field) {
+            PersonaField.NAME -> "角色名"
+            PersonaField.TAGLINE -> "一句简介"
+            PersonaField.GREETING -> "开场白"
+        }
     }
     val placeholder = when (target) {
         InputTarget.ApiKey -> "sk-…"
@@ -120,10 +156,19 @@ fun InputScreen(target: InputTarget, onDone: () -> Unit) {
         InputTarget.XfyApiKey -> "32 位十六进制"
         InputTarget.XfyApiSecret -> "32 位十六进制"
         is InputTarget.Chat -> "打字或说句话"
+        InputTarget.PersonaDescription -> "比如：一个嘴硬心软的剑修理匠"
+        is InputTarget.PresetFieldEdit -> target.field()?.placeholder ?: "可以留空"
+        // 长度上限写出来，用户才知道为什么会被截断（手表列表的标题位就这么宽）
+        is InputTarget.PersonaFieldEdit -> when (target.field) {
+            PersonaField.NAME -> "不超过 6 个字"
+            PersonaField.TAGLINE -> "不超过 12 个字"
+            PersonaField.GREETING -> "TA 进来说的第一句话"
+        }
     }
     // 「生成」而不是「保存」：这一格按下去换来的是一次造人，不是一个存下来的设置项。
     val confirmLabel = when (target) {
         is InputTarget.Chat -> "发送"
+        InputTarget.PersonaDescription -> "生成"
         else -> "保存"
     }
 
@@ -146,6 +191,19 @@ fun InputScreen(target: InputTarget, onDone: () -> Unit) {
             // 带草稿进来（录音还没发就按了键盘按钮）就先填上，用户接着改就是；
             // 没草稿则是空框，跟以前完全一样
             is InputTarget.Chat -> target.draft
+            // 「自己说一句」永远是空框：这一句是从零开始想，没有可继承的旧值
+            InputTarget.PersonaDescription -> ""
+            // 预设那几格从页面级草稿里取，用户之前改过什么就接着改什么
+            is InputTarget.PresetFieldEdit -> ChatEngine.presetDraft.value
+                ?.takeIf { it.presetIndex == target.presetIndex }
+                ?.valueOf(target.fieldKey)
+                .orEmpty()
+
+            is InputTarget.PersonaFieldEdit -> when (target.field) {
+                PersonaField.NAME -> ChatEngine.findPersona(target.personaId)?.name
+                PersonaField.TAGLINE -> ChatEngine.findPersona(target.personaId)?.tagline
+                PersonaField.GREETING -> ChatEngine.findPersona(target.personaId)?.greeting
+            }.orEmpty()
         }
         // 光标一律落在末尾：接上键盘就是接着敲，符合「改刚才那句」的直觉
         mutableStateOf(TextFieldValue(initial, TextRange(initial.length)))
@@ -180,6 +238,15 @@ fun InputScreen(target: InputTarget, onDone: () -> Unit) {
                     ChatEngine.send(target.conversationId, value)
                 }
             }
+
+            // 只落到草稿里，导航由新建页接力 —— 理由见 InputTarget.PersonaDescription
+            InputTarget.PersonaDescription -> ChatEngine.setPersonaDraft(value)
+
+            is InputTarget.PresetFieldEdit ->
+                ChatEngine.updatePresetDraft { it.with(target.fieldKey, value) }
+
+            is InputTarget.PersonaFieldEdit ->
+                ChatEngine.updatePersonaField(target.personaId, target.field, value)
         }
     }
 
@@ -189,8 +256,15 @@ fun InputScreen(target: InputTarget, onDone: () -> Unit) {
      */
     fun submit(raw: String = field.text) {
         val value = raw.trim()
-        // 空值一律不提交。
-        if (value.isEmpty()) return
+        // 空值一律不提交 —— 只有一个例外：改预设的某一格时，**清空就是「这一项不要了」**。
+        // 拼生成描述时空白字段本来就会被略过，所以空串在这一处是有意义的输入，
+        // 不能被当成「什么都没输入」挡回去（否则预设自带的默认值永远删不掉）。
+        //
+        // 角色的短字段（名字 / 简介 / 开场白）**不吃这个例外**：这一页的规矩是
+        // 「离开 = 提交」，而离开时框里是空的最常见的成因就是手滑 ——
+        // 让那一下顺手把简介或开场白抹掉，代价比「手表上清不掉」大得多。
+        // 真要清空，去手机那一页把那一格删掉（详情页上写着这句）。
+        if (value.isEmpty() && target !is InputTarget.PresetFieldEdit) return
         submitted = true
         applyTarget(value)
         keyboard?.hide()
@@ -405,3 +479,12 @@ fun InputScreen(target: InputTarget, onDone: () -> Unit) {
         keyboard?.show()
     }
 }
+
+/**
+ * 找到这次要改的那一行预设字段的定义。
+ *
+ * 标题、占位文案都从这儿来，不在导航参数里传一份 —— 传一份就多一个会和
+ * `PersonaPresets` 对不上的地方。拿不到就返回 null，调用方各自有兜底文案。
+ */
+private fun InputTarget.PresetFieldEdit.field(): PresetField? =
+    personaPresets().getOrNull(presetIndex)?.fields?.firstOrNull { it.key == fieldKey }
