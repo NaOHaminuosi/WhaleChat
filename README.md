@@ -268,7 +268,6 @@ app/src/main/java/com/naoh/whalechat/
 - 提问题：[Issues](https://github.com/NaOHaminuosi/WhaleChat/issues) —— 提问前先翻 [`docs/FAQ.md`](docs/FAQ.md)
 - 改代码：先看 [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - 版本记录：[`CHANGELOG.md`](CHANGELOG.md)
-- 市场文案：[`docs/COOLAPK.md`](docs/COOLAPK.md)
 
 ## 许可
 
